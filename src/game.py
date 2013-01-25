@@ -147,9 +147,6 @@ def go():
                 done = True
             elif event.type == GOL_TICK:
                 gol_state = gol_round(gol_state)
-                for y in xrange(1, gol_state.shape[0] - 1):
-                    for x in xrange(1, gol_state.shape[1] - 1):
-                        cells_dict[(x, y)].set_color(gol_state[x][y])
                 character.Tick()
             elif event.type == pygame.KEYDOWN:
                 eventKey = PYGAME_KEY_TO_DIR.get(event.key, None)
