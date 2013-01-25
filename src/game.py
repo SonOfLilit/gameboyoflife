@@ -82,6 +82,18 @@ class Cell(pygame.sprite.Sprite):
             fill_color = WHITE
         self.image.fill(fill_color)
 
+class Character(pygame.sprite.Sprite):
+    def __init__(self, x, y, speed):
+        pygame.sprite.Sprite.__init__(self)
+        self.cell_x = x
+        self.cell_y = y
+        self.speed = 0, 0
+
+    def IsDead(self):
+        return (self.speed > -10 or
+                self.cell_y < -100)
+    
+
 
 GOL_TICK = pygame.USEREVENT + 0
 
@@ -114,6 +126,9 @@ def main():
                 for y in xrange(1, gol_state.shape[0] - 1):
                     for x in xrange(1, gol_state.shape[1] - 1):
                         cells_dict[(x, y)].set_color(gol_state[x][y])
+            elif event.type == pygame.KEYDOWN:
+                
+
 
 
         screen.fill(BLUE)
@@ -122,10 +137,10 @@ def main():
 
         clock.tick(20)
         pygame.display.flip()
-        
+
 
     pygame.quit()
     
-
-if __name__ == "__main__":
-    main()
+print "HWAT"
+print __name__
+    # main()
