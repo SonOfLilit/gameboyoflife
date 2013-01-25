@@ -111,6 +111,7 @@ class Character(pygame.sprite.Sprite):
 
 
 class Camera(object):
+    FOLLOW_BORDER_WIDTH = 50
     def __init__(self, rect):
         self._rect = rect
     
@@ -118,6 +119,18 @@ class Camera(object):
         self._rect.x += x
         self._rect.y += y
     
+    def follow_sprite(self, sprite):
+        if sprite.x + self._rect.left < self.FOLLOW_BORDER_WIDTH:
+            self._rect.x += 1
+        if sprite.x > self._rect.right - self.FOLLOW_BORDER_WIDTH:
+            self._rect.x -= 1
+        if sprite.y + self._rect.top < self.FOLLOW_BORDER_WIDTH:
+            self._rect.y += 1
+        if sprite.y > self._rect.bottom - self.FOLLOW_BORDER_WIDTH:
+            self._rect.y -= 1
+        
+            
+
     def draw(self, sprites, screen):
         group = pygame.sprite.Group()
         for sprite in sprites:
@@ -152,7 +165,7 @@ def go():
     gol_state[10:13, 17:19] = 1
 
     sprites = pygame.sprite.Group()
-    character = Character(10, 10)
+    character = Character(0, 0)
     sprites.add(character)
     # TODO Make sure to draw this Guy.
 
@@ -206,7 +219,7 @@ def go():
         
         camera.draw(sprites, screen)
         
-#        camera.move(-1, -2)
+        camera.follow_sprite(character)
 
         clock.tick(20)
         pygame.display.flip()
