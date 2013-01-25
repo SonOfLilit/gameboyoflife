@@ -84,15 +84,15 @@ class Character(pygame.sprite.Sprite):
         self.image.fill(RED)
        
         self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = x * CELL_LENGTH, y * CELL_LENGTH
+        self.x, self.y = x * CELL_LENGTH, y * CELL_LENGTH
         self.speed = speed
         self.acc = acc
 
     def Tick(self):
         self.speed = (self.speed[0] + self.acc[0], self.speed[1] + self.acc[1])
-        self.rect.x += self.speed[0]
-        self.rect.y += self.speed[1]
-        print "x:" , self.rect.x
+        self.x += self.speed[0]
+        self.y += self.speed[1]
+        print "x:" , self.x
         print self.speed
 
     def GainAcceleration(self, direction):
@@ -108,6 +108,29 @@ class Character(pygame.sprite.Sprite):
         # TODO: DECIDE.
         return (self.speed > -10 or
                 self.cell_y < -100)
+
+
+class Camera(object):
+    def __init__(self, rect):
+        self._rect = rect
+    
+    def move(self, x, y):
+        self._rect.x += x
+        self._rect.y += y
+    
+    def draw(self, sprites, screen):
+        group = pygame.sprite.Group()
+        for sprite in sprites:
+            sprite.rect.x, sprite.rect.y = sprite.x + self._rect.x, sprite.y + self._rect.y
+            group.add(sprite)
+        group.draw(screen)
+    
+    def xy(self):
+        return self._rect.x, self._rect.y
+
+    def transform(self, x, y):
+        return (x - self._rect.x, y - self._rect.y)
+
 
 
 GOL_TICK = pygame.USEREVENT + 0
@@ -136,7 +159,7 @@ def go():
     sprites.add(character)
     # TODO Make sure to draw this Guy.
 
-    camera_x, camera_y = 0, 0
+    camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
     
     pygame.time.set_timer(GOL_TICK, 200)
 
@@ -165,6 +188,7 @@ def go():
 
         screen.fill(BLUE)
         
+        camera_x, camera_y = camera.xy()
         gol_x0 = camera_x / CELL_LENGTH
         gol_y0 = camera_y / CELL_LENGTH
         # In a height H (parts of) up to (H/object_height)+1 objects may live side-by-side.
@@ -182,10 +206,10 @@ def go():
                     rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
                     screen.fill(BLACK, rect)
         
-        sprites.draw(screen)
-
-        camera_x -= 1
-        camera_y -= 2
+        
+        camera.draw(sprites, screen)
+        
+#        camera.move(-1, -2)
 
         clock.tick(20)
         pygame.display.flip()
