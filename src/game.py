@@ -128,9 +128,6 @@ class Camera(object):
     def xy(self):
         return self._rect.x, self._rect.y
 
-    def transform(self, x, y):
-        return (x - self._rect.x, y - self._rect.y)
-
 
 
 GOL_TICK = pygame.USEREVENT + 0
