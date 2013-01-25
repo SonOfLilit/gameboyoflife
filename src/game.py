@@ -79,11 +79,12 @@ def main():
     gol_state = numpy.zeros((800, 800))
     x, y = glider_round1.shape
     gol_state[:x, :y] = glider_round1
-    print gol_state.shape
+    gol_state[4:6, 10:12] = 1
+    gol_state[10:13, 17:19] = 1
 
     camera_x, camera_y = 0, 0
     
-    pygame.time.set_timer(GOL_TICK, 400)
+    pygame.time.set_timer(GOL_TICK, 200)
 
     done = False
     while not done:
@@ -97,18 +98,23 @@ def main():
         
         gol_x0 = camera_x / CELL_LENGTH
         gol_y0 = camera_y / CELL_LENGTH
+        # In a height H (parts of) up to (H/object_height)+1 objects may live side-by-side.
+        # True, in the case where the camera is "synchronized" with the game world it will be
+        # (H/object_height), but usually there are parts of objects at top and bottom.
         for y in xrange(SCREEN_Y / CELL_LENGTH + 1):
             for x in xrange(SCREEN_X / CELL_LENGTH + 1):
+                # coordinates of this cell in gol_state
                 gol_x, gol_y = gol_x0 + x, gol_y0 + y
+                
                 if gol_state[gol_x, gol_y]:
+                    # screen coordinates of this cell with this camera
                     cell_y = -(camera_y % CELL_LENGTH) + CELL_LENGTH * y
                     cell_x = -(camera_x % CELL_LENGTH) + CELL_LENGTH * x
                     rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
                     screen.fill(BLACK, rect)
-#                    screen.blit(CELL_IMAGE, (cell_x, cell_y))
         
         camera_x -= 1
-        camera_y -= 0
+        camera_y -= 2
 
         clock.tick(20)
         pygame.display.flip()
