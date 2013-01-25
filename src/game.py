@@ -80,11 +80,11 @@ class Character(pygame.sprite.Sprite):
     def __init__(self, x, y, speed=(0, 0), acc=(0, 0)):
         pygame.sprite.Sprite.__init__(self)
         
-        self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
-        
+        self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH]) 
+        self.image.fill(RED)
+       
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x * CELL_LENGTH, y * CELL_LENGTH
-        self.image.fill(BLUE)
         self.speed = speed
         self.acc = acc
 
@@ -130,7 +130,10 @@ def go():
     gol_state[:x, :y] = glider_round1
     gol_state[4:6, 10:12] = 1
     gol_state[10:13, 17:19] = 1
-    character = Character(50, 50)
+
+    sprites = pygame.sprite.Group()
+    character = Character(10, 10)
+    sprites.add(character)
     # TODO Make sure to draw this Guy.
 
     camera_x, camera_y = 0, 0
@@ -179,6 +182,8 @@ def go():
                     rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
                     screen.fill(BLACK, rect)
         
+        sprites.draw(screen)
+
         camera_x -= 1
         camera_y -= 2
 
