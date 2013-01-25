@@ -167,7 +167,6 @@ def go():
     sprites = pygame.sprite.Group()
     character = Character(0, 0)
     sprites.add(character)
-    # TODO Make sure to draw this Guy.
 
     camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
     
