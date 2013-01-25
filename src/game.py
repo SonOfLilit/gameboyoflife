@@ -1,7 +1,6 @@
 import pygame
 import numpy
 
-
 def gol_round(Z):
     """
     From http://dana.loria.fr/doc/game-of-life.html
@@ -83,41 +82,81 @@ class Cell(pygame.sprite.Sprite):
         self.image.fill(fill_color)
 
 class Character(pygame.sprite.Sprite):
-    def __init__(self, x, y, speed):
+    # Dir: X, Y
+    DIRECTIONS = {"UP":(0,2),
+                  "DOWN":(0,-2),
+                  "LEFT":(-2, 0),
+                  "RIGHT":(2, 0)}
+    def __init__(self, x, y, speed=(0, 0), acc=(0, 0)):
         pygame.sprite.Sprite.__init__(self)
-        self.cell_x = x
-        self.cell_y = y
-        self.speed = 0, 0
+        
+        self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
+        
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x * CELL_LENGTH, y * CELL_LENGTH
+        self.image.fill(BLUE)
+        self.speed = speed
+        self.acc = acc
+
+    def Tick(self):
+        self.speed = (self.speed[0] + self.acc[0], self.speed[1] + self.acc[1])
+        self.rect.x += self.speed[0]
+        self.rect.y += self.speed[1]
+        print "x:" , self.rect.x
+        print self.speed
+
+    def GainAcceleration(self, direction):
+        if not direction:
+            return
+        self.acc = self.acc + Character.DIRECTIONS[direction]
+        print self.acc
+
+    def LostAcceleration(self):
+        self.acc = 0, 0
 
     def IsDead(self):
+        # TODO: DECIDE.
         return (self.speed > -10 or
                 self.cell_y < -100)
-    
 
 
 GOL_TICK = pygame.USEREVENT + 0
 
-def main():
-    pygame.init()
+# This dir is for key pressess which should affect direction.
+# Use diffn't dir for other functions.
+PYGAME_KEY_TO_DIR = {pygame.K_LEFT : "LEFT",
+                     pygame.K_RIGHT : "RIGHT"}
+
+# TODO: Utilze this?
+PYGAME_KEY_TO_FUNC = {pygame.K_p : "PAUSEKEY"}
+
+def go():
     screen = pygame.display.set_mode([640, 480])
     clock = pygame.time.Clock()
+    sprites = pygame.sprite.Group()
 
     gol_state = numpy.zeros((80, 80))
     x, y = glider_round1.shape
     gol_state[:x, :y] = glider_round1
+    character = Character(50, 50)
+    sprites.add(character)
     
     cells_dict = {}
-    cells = pygame.sprite.Group()
     for y in xrange(1, gol_state.shape[0] - 1):
         for x in xrange(1, gol_state.shape[1] - 1):
             cell = Cell(x, y, gol_state[x][y])
             cells_dict[(x, y)] = cell
-            cells.add(cell)
+            sprites.add(cell)
 
     pygame.time.set_timer(GOL_TICK, 1000)
 
-    done = False
+    done, pause = False, False
     while not done:
+        if pause:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+                    pause = not pause
+            continue
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
@@ -126,21 +165,30 @@ def main():
                 for y in xrange(1, gol_state.shape[0] - 1):
                     for x in xrange(1, gol_state.shape[1] - 1):
                         cells_dict[(x, y)].set_color(gol_state[x][y])
+                character.Tick()
             elif event.type == pygame.KEYDOWN:
-                
-
-
+                eventKey = PYGAME_KEY_TO_DIR.get(event.key, None)
+                if eventKey:
+                    character.GainAcceleration(eventKey)
+                if event.key == pygame.K_p:
+                    pause = not pause
+                elif event.key == pygame.K_q:
+                    done = True
+            elif event.type == pygame.KEYUP:
+                character.LostAcceleration()
 
         screen.fill(BLUE)
-
-        cells.draw(screen)
-
+        sprites.draw(screen)
         clock.tick(20)
         pygame.display.flip()
 
-
-    pygame.quit()
+def main():
+    try:
+        pygame.init()
+        go()
+    finally:
+        pygame.quit()
     
 print "HWAT"
-print __name__
-    # main()
+if __name__ == "__main__":
+    main()
