@@ -1,6 +1,7 @@
 import pygame
 import numpy
 
+
 def gol_round(Z):
     """
     From http://dana.loria.fr/doc/game-of-life.html
@@ -61,25 +62,14 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
 CELL_LENGTH = 16
-class Cell(pygame.sprite.Sprite):
-    _ALL_CELLS = {}
-    def __init__(self, x, y, color):
-        pygame.sprite.Sprite.__init__(self)
-        
-        self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
-        
-        self.rect = self.image.get_rect()
-        self.rect.x = x * CELL_LENGTH
-        self.rect.y = y * CELL_LENGTH
+CELL_IMAGE = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
+CELL_IMAGE.fill(BLACK)
 
-        self.set_color(color)
+GOL_TICK = pygame.USEREVENT + 0
 
-    def set_color(self, color):
-        if color:
-            fill_color = BLACK
-        else:
-            fill_color = WHITE
-        self.image.fill(fill_color)
+SCREEN_X = 640
+SCREEN_Y = 480
+
 
 class Character(pygame.sprite.Sprite):
     # Dir: X, Y
@@ -122,6 +112,7 @@ class Character(pygame.sprite.Sprite):
 
 GOL_TICK = pygame.USEREVENT + 0
 
+
 # This dir is for key pressess which should affect direction.
 # Use diffn't dir for other functions.
 PYGAME_KEY_TO_DIR = {pygame.K_LEFT : "LEFT",
@@ -131,32 +122,25 @@ PYGAME_KEY_TO_DIR = {pygame.K_LEFT : "LEFT",
 PYGAME_KEY_TO_FUNC = {pygame.K_p : "PAUSEKEY"}
 
 def go():
-    screen = pygame.display.set_mode([640, 480])
+    screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y])
     clock = pygame.time.Clock()
-    sprites = pygame.sprite.Group()
 
-    gol_state = numpy.zeros((80, 80))
+    gol_state = numpy.zeros((800, 800))
     x, y = glider_round1.shape
     gol_state[:x, :y] = glider_round1
+    print gol_state.shape
     character = Character(50, 50)
-    sprites.add(character)
+    # TODO Make sure to draw this Guy.
+
+    camera_x, camera_y = 0, 0
     
-    cells_dict = {}
-    for y in xrange(1, gol_state.shape[0] - 1):
-        for x in xrange(1, gol_state.shape[1] - 1):
-            cell = Cell(x, y, gol_state[x][y])
-            cells_dict[(x, y)] = cell
-            sprites.add(cell)
+    pygame.time.set_timer(GOL_TICK, 400)
 
-    pygame.time.set_timer(GOL_TICK, 1000)
+    done = False
+    pygame.time.set_timer(GOL_TICK, 400)
 
-    done, pause = False, False
+    done = False
     while not done:
-        if pause:
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
-                    pause = not pause
-            continue
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
@@ -177,8 +161,24 @@ def go():
             elif event.type == pygame.KEYUP:
                 character.LostAcceleration()
 
+
         screen.fill(BLUE)
-        sprites.draw(screen)
+        
+        gol_x0 = camera_x / CELL_LENGTH
+        gol_y0 = camera_y / CELL_LENGTH
+        for y in xrange(SCREEN_Y / CELL_LENGTH + 1):
+            for x in xrange(SCREEN_X / CELL_LENGTH + 1):
+                gol_x, gol_y = gol_x0 + x, gol_y0 + y
+                if gol_state[gol_x, gol_y]:
+                    cell_y = -(camera_y % CELL_LENGTH) + CELL_LENGTH * y
+                    cell_x = -(camera_x % CELL_LENGTH) + CELL_LENGTH * x
+                    rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
+                    screen.fill(BLACK, rect)
+#                    screen.blit(CELL_IMAGE, (cell_x, cell_y))
+        
+        camera_x -= 1
+        camera_y -= 0
+
         clock.tick(20)
         pygame.display.flip()
 
@@ -189,6 +189,5 @@ def main():
     finally:
         pygame.quit()
     
-print "HWAT"
 if __name__ == "__main__":
     main()
