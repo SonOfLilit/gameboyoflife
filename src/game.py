@@ -1,4 +1,3 @@
-import random
 import pygame
 import numpy
 
@@ -71,8 +70,58 @@ GOL_TICK = pygame.USEREVENT + 0
 SCREEN_X = 640
 SCREEN_Y = 480
 
-def main():
-    pygame.init()
+
+class Character(pygame.sprite.Sprite):
+    # Dir: X, Y
+    DIRECTIONS = {"UP":(0,2),
+                  "DOWN":(0,-2),
+                  "LEFT":(-2, 0),
+                  "RIGHT":(2, 0)}
+    def __init__(self, x, y, speed=(0, 0), acc=(0, 0)):
+        pygame.sprite.Sprite.__init__(self)
+        
+        self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
+        
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x * CELL_LENGTH, y * CELL_LENGTH
+        self.image.fill(BLUE)
+        self.speed = speed
+        self.acc = acc
+
+    def Tick(self):
+        self.speed = (self.speed[0] + self.acc[0], self.speed[1] + self.acc[1])
+        self.rect.x += self.speed[0]
+        self.rect.y += self.speed[1]
+        print "x:" , self.rect.x
+        print self.speed
+
+    def GainAcceleration(self, direction):
+        if not direction:
+            return
+        self.acc = self.acc + Character.DIRECTIONS[direction]
+        print self.acc
+
+    def LostAcceleration(self):
+        self.acc = 0, 0
+
+    def IsDead(self):
+        # TODO: DECIDE.
+        return (self.speed > -10 or
+                self.cell_y < -100)
+
+
+GOL_TICK = pygame.USEREVENT + 0
+
+
+# This dir is for key pressess which should affect direction.
+# Use diffn't dir for other functions.
+PYGAME_KEY_TO_DIR = {pygame.K_LEFT : "LEFT",
+                     pygame.K_RIGHT : "RIGHT"}
+
+# TODO: Utilze this?
+PYGAME_KEY_TO_FUNC = {pygame.K_p : "PAUSEKEY"}
+
+def go():
     screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y])
     clock = pygame.time.Clock()
 
@@ -81,10 +130,15 @@ def main():
     gol_state[:x, :y] = glider_round1
     gol_state[4:6, 10:12] = 1
     gol_state[10:13, 17:19] = 1
+    character = Character(50, 50)
+    # TODO Make sure to draw this Guy.
 
     camera_x, camera_y = 0, 0
     
     pygame.time.set_timer(GOL_TICK, 200)
+
+    done = False
+    pygame.time.set_timer(GOL_TICK, 400)
 
     done = False
     while not done:
@@ -93,6 +147,21 @@ def main():
                 done = True
             elif event.type == GOL_TICK:
                 gol_state = gol_round(gol_state)
+                for y in xrange(1, gol_state.shape[0] - 1):
+                    for x in xrange(1, gol_state.shape[1] - 1):
+                        cells_dict[(x, y)].set_color(gol_state[x][y])
+                character.Tick()
+            elif event.type == pygame.KEYDOWN:
+                eventKey = PYGAME_KEY_TO_DIR.get(event.key, None)
+                if eventKey:
+                    character.GainAcceleration(eventKey)
+                if event.key == pygame.K_p:
+                    pause = not pause
+                elif event.key == pygame.K_q:
+                    done = True
+            elif event.type == pygame.KEYUP:
+                character.LostAcceleration()
+
 
         screen.fill(BLUE)
         
@@ -118,10 +187,13 @@ def main():
 
         clock.tick(20)
         pygame.display.flip()
-        
 
-    pygame.quit()
+def main():
+    try:
+        pygame.init()
+        go()
+    finally:
+        pygame.quit()
     
-
 if __name__ == "__main__":
     main()
