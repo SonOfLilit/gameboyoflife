@@ -1,3 +1,4 @@
+import random
 import pygame
 import numpy
 
@@ -62,47 +63,27 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
 CELL_LENGTH = 16
-class Cell(pygame.sprite.Sprite):
-    _ALL_CELLS = {}
-    def __init__(self, x, y, color):
-        pygame.sprite.Sprite.__init__(self)
-        
-        self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
-        
-        self.rect = self.image.get_rect()
-        self.rect.x = x * CELL_LENGTH
-        self.rect.y = y * CELL_LENGTH
-
-        self.set_color(color)
-
-    def set_color(self, color):
-        if color:
-            fill_color = BLACK
-        else:
-            fill_color = WHITE
-        self.image.fill(fill_color)
-
+CELL_IMAGE = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
+CELL_IMAGE.fill(BLACK)
 
 GOL_TICK = pygame.USEREVENT + 0
 
+SCREEN_X = 640
+SCREEN_Y = 480
+
 def main():
     pygame.init()
-    screen = pygame.display.set_mode([640, 480])
+    screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y])
     clock = pygame.time.Clock()
 
-    gol_state = numpy.zeros((80, 80))
+    gol_state = numpy.zeros((800, 800))
     x, y = glider_round1.shape
     gol_state[:x, :y] = glider_round1
-    
-    cells_dict = {}
-    cells = pygame.sprite.Group()
-    for y in xrange(1, gol_state.shape[0] - 1):
-        for x in xrange(1, gol_state.shape[1] - 1):
-            cell = Cell(x, y, gol_state[x][y])
-            cells_dict[(x, y)] = cell
-            cells.add(cell)
+    print gol_state.shape
 
-    pygame.time.set_timer(GOL_TICK, 1000)
+    camera_x, camera_y = 0, 0
+    
+    pygame.time.set_timer(GOL_TICK, 400)
 
     done = False
     while not done:
@@ -111,14 +92,23 @@ def main():
                 done = True
             elif event.type == GOL_TICK:
                 gol_state = gol_round(gol_state)
-                for y in xrange(1, gol_state.shape[0] - 1):
-                    for x in xrange(1, gol_state.shape[1] - 1):
-                        cells_dict[(x, y)].set_color(gol_state[x][y])
-
 
         screen.fill(BLUE)
-
-        cells.draw(screen)
+        
+        gol_x0 = camera_x / CELL_LENGTH
+        gol_y0 = camera_y / CELL_LENGTH
+        for y in xrange(SCREEN_Y / CELL_LENGTH + 1):
+            for x in xrange(SCREEN_X / CELL_LENGTH + 1):
+                gol_x, gol_y = gol_x0 + x, gol_y0 + y
+                if gol_state[gol_x, gol_y]:
+                    cell_y = -(camera_y % CELL_LENGTH) + CELL_LENGTH * y
+                    cell_x = -(camera_x % CELL_LENGTH) + CELL_LENGTH * x
+                    rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
+                    screen.fill(BLACK, rect)
+#                    screen.blit(CELL_IMAGE, (cell_x, cell_y))
+        
+        camera_x -= 1
+        camera_y -= 0
 
         clock.tick(20)
         pygame.display.flip()
