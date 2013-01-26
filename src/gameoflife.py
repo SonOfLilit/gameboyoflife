@@ -1,30 +1,28 @@
+# Copyright 2013 Aur Saraf and friends.
+
+
 import numpy
 
-def round(Z):
-    """
-    From http://dana.loria.fr/doc/game-of-life.html
-    """
-    # find number of neighbours that each square has
-    N = numpy.zeros(Z.shape, dtype=int)
-    N[1:, 1:] += Z[:-1, :-1]
-    N[1:, :-1] += Z[:-1, 1:]
-    N[:-1, 1:] += Z[1:, :-1]
-    N[:-1, :-1] += Z[1:, 1:]
-    N[:-1, :] += Z[1:, :]
-    N[1:, :] += Z[:-1, :]
-    N[:, :-1] += Z[:, 1:]
-    N[:, 1:] += Z[:, :-1]
+SIDES = numpy.array([1,0, 1])
+SUM_3 = numpy.array([1, 1, 1])
+def round(initial):
+    # If you struggle to understand this algorithm, blame copyright laws
+    neighbours = numpy.zeros(initial.shape, dtype=int)
+    for i in xrange(1, len(initial) - 1):
+        neighbours[i] += numpy.convolve(initial[i], SIDES)[1:-1]
+        sum_3 = numpy.convolve(initial[i], SUM_3)[1:-1]
+        neighbours[i - 1] += sum_3
+        neighbours[i + 1] += sum_3
     # zero the edges
-    N[0,: ] = 0
-    N[-1,: ] = 0
-    N[:, 0] = 0
-    N[:, -1] = 0
-    # a live cell is killed if it has fewer than 2 or more than 3 neighbours.
-    part1 = ((Z == 1) & (N < 4) & (N > 1))
+    neighbours[0,: ] = 0
+    neighbours[-1,: ] = 0
+    neighbours[:, 0] = 0
+    neighbours[:, -1] = 0
+    surviving = ((initial == 1) & (neighbours > 1) & (neighbours < 4))
     # a new cell forms if a square has exactly three members
-    part2 = ((Z == 0) & (N == 3))
-    return (part1 | part2).astype(int)
-
+    newborn = ((initial == 0) & (neighbours == 3))
+    return (surviving | newborn).astype(int)
+    
 glider_round1 = numpy.array(
     [[0, 0, 0, 0, 0, 0],
      [0, 0, 0, 1, 0, 0],

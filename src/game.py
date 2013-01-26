@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2013 Aur Saraf and friends.
+
+
 import sys
 import rle
 import pygame

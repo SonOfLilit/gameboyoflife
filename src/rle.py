@@ -1,3 +1,8 @@
+#Written by Sean McKiernan (Mekire)
+#
+# Minor changes 2013 Aur Saraf and friends.
+
+
 import numpy
 import re
 
