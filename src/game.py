@@ -20,20 +20,24 @@ GOL_TICK = pygame.USEREVENT + 0
 SCREEN_X = 800
 SCREEN_Y = 600
 
+class RestartException(Exception):
+    pass
+
+
 class Character(pygame.sprite.Sprite):
     # Dir: X, Y
-    DSPEED = CELL_LENGTH / 2
+    DSPEED = 8
     G = CELL_LENGTH / 10
     MAX_SPEED = CELL_LENGTH - 2
 
     def __init__(self, gol, door, x, y):
         pygame.sprite.Sprite.__init__(self)
         
-        self.image = pygame.Surface([CELL_LENGTH / 2, CELL_LENGTH / 2]) 
+        self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH]) 
         self.image.fill(RED)
        
         self.rect = self.image.get_rect()
-        self.x, self.y = x * CELL_LENGTH + CELL_LENGTH / 4, y * CELL_LENGTH + CELL_LENGTH / 4
+        self.x, self.y = x * CELL_LENGTH, y * CELL_LENGTH
         self.vx = 0
         self.vy = 0
         self.double_jump_available = False
@@ -83,6 +87,8 @@ class Character(pygame.sprite.Sprite):
             elif self.double_jump_available:
                 self.vy = -Character.DSPEED
                 self.double_jump_available = False
+                self.image.fill(RED)
+
 
     def StopMovement(self, direction):
         if direction in ["LEFT", "RIGHT"]:
@@ -91,6 +97,7 @@ class Character(pygame.sprite.Sprite):
     def StopFalling(self):
         self.vy = 0
         self.double_jump_available = True
+        self.image.fill(BLUE)
 
 
 class Door(pygame.sprite.Sprite):
@@ -273,6 +280,8 @@ def go(level, player_position, door_position):
                     character.MoveInDirection(eventKey)
                 if event.key == pygame.K_p:
                     pause()
+                elif event.key == pygame.K_r:
+                    raise RestartException()
                 elif event.key == pygame.K_q:
                     done = True
                 elif event.key == pygame.K_s:
@@ -291,11 +300,17 @@ def go(level, player_position, door_position):
         clock.tick(20)
         pygame.display.flip()
 
+def go_continuously(gol, player, door):
+    try:
+        go(gol, player, door)
+    except RestartException:
+        go_continuously(gol, player, door)
+
 def main():
     gol, player, door = rle.load(sys.argv[1])
     pygame.init()
     try:
-        go(gol, player, door)
+        go_continuously(gol, player, door)
     finally:
         pygame.quit()
     
