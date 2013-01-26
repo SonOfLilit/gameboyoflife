@@ -36,24 +36,21 @@ class Character(pygame.sprite.Sprite):
         self.x, self.y = x * CELL_LENGTH + CELL_LENGTH / 4, y * CELL_LENGTH + CELL_LENGTH / 4
         self.vx = 0
         self.vy = 0
+        self.double_jump_available = False
         
         self.gol = gol
         self.door = door
 
     def Tick(self):
         """ Retrun value is if won."""
-        newX = self.x
-        newY = self.y
-        if self.vx:
-            newX = self.x + self.vx
-        if self.vy != None:
-            newY = self.y + self.vy
-
         # Check whether done.
         won = self.door.Win(self.rect)
         if won:
             print "WIN"
             return True
+
+        newX = self.x + self.vx
+        newY = self.y + self.vy
 
         # if we are 16 pixels high we span from some y to y + 15, thus the -1s
         stopping = self.gol.check_bottom_collision((self.x, self.y + self.rect.height - 1),
@@ -80,14 +77,20 @@ class Character(pygame.sprite.Sprite):
             self.vx = -Character.DSPEED
         elif direction == "RIGHT":
             self.vx = Character.DSPEED
-        elif direction == "SPACE" and self.vy == 0:
-            self.vy = -Character.DSPEED
+        elif direction == "SPACE":
+            if self.vy == 0:
+                self.vy = -Character.DSPEED
+            elif self.double_jump_available:
+                self.vy = -Character.DSPEED
+                self.double_jump_available = False
 
-    def StopMovement(self):
-        self.vx = 0
+    def StopMovement(self, direction):
+        if direction in ["LEFT", "RIGHT"]:
+            self.vx = 0
 
     def StopFalling(self):
         self.vy = 0
+        self.double_jump_available = True
 
 
 class Door(pygame.sprite.Sprite):
@@ -252,7 +255,7 @@ def go(level, player_position, door_position):
     camera = Camera(pygame.Rect((player_position[0] - 20) * CELL_LENGTH, (player_position[1] - 20) * CELL_LENGTH, SCREEN_X, SCREEN_Y))
     
     done = False
-    pygame.time.set_timer(GOL_TICK, 400)
+    pygame.time.set_timer(GOL_TICK, 600)
     pygame.time.set_timer(PLAYER_TICK, 50)
 
     done = False
@@ -275,7 +278,8 @@ def go(level, player_position, door_position):
                 elif event.key == pygame.K_s:
                     character.StopFalling()
             elif event.type == pygame.KEYUP:
-                character.StopMovement()
+                eventKey = PYGAME_KEY_TO_DIR.get(event.key, None)
+                character.StopMovement(eventKey)
 
         screen.fill(WHITE)
         
