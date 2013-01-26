@@ -15,7 +15,7 @@ CELL_LENGTH = 10
 CELL_IMAGE = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
 CELL_IMAGE.fill(BLACK)
 
-GOL_TICK = pygame.USEREVENT + 0
+FRAME_RATE = 60
 
 SCREEN_X = 800
 SCREEN_Y = 600
@@ -88,7 +88,6 @@ class Character(pygame.sprite.Sprite):
                 self.vy = -Character.DSPEED
                 self.double_jump_available = False
                 self.image.fill(RED)
-
 
     def StopMovement(self, direction):
         if direction in ["LEFT", "RIGHT"]:
@@ -253,9 +252,7 @@ def pause():
 def go(level, player_position, door_position):
     screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y])
     clock = pygame.time.Clock()
-
     gol = GameOfLife(level)
-    level = None
 
     sprites = pygame.sprite.Group()
     door = Door(*door_position)
@@ -288,8 +285,6 @@ def go(level, player_position, door_position):
                     return go(level, player_position, door_position)
                 elif event.key == pygame.K_q:
                     done = True
-                elif event.key == pygame.K_s:
-                    character.StopFalling()
             elif event.type == pygame.KEYUP:
                 eventKey = PYGAME_KEY_TO_DIR.get(event.key, None)
                 character.StopMovement(eventKey)
@@ -304,11 +299,19 @@ def go(level, player_position, door_position):
             print "GAME OVER."
             done = True
 
-        clock.tick(20)
+        clock.tick(FRAME_RATE)
         pygame.display.flip()
 
+
+
 def main():
-    gol, player, door = rle.load(sys.argv[1])
+    if len(sys.argv) > 1:
+        f_name = sys.argv[1]
+    else:
+        f_name = "../levels/glider-gun.rle"
+    gol, player, door = rle.load(f_name)
+                                     
+
     pygame.init()
     try:
         go(gol, player, door)
