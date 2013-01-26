@@ -5,7 +5,7 @@ def round(Z):
     From http://dana.loria.fr/doc/game-of-life.html
     """
     # find number of neighbours that each square has
-    N = numpy.zeros(Z.shape)
+    N = numpy.zeros(Z.shape, dtype=int)
     N[1:, 1:] += Z[:-1, :-1]
     N[1:, :-1] += Z[:-1, 1:]
     N[:-1, 1:] += Z[1:, :-1]

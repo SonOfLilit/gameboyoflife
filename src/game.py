@@ -1,3 +1,5 @@
+import sys
+import rle
 import pygame
 import numpy
 
@@ -199,21 +201,18 @@ PYGAME_KEY_TO_DIR = {pygame.K_LEFT : "LEFT",
                      pygame.K_RIGHT : "RIGHT",
                      pygame.K_SPACE : "SPACE"}
 
-# TODO: Utilze this?
-PYGAME_KEY_TO_FUNC = {pygame.K_p : "PAUSEKEY"}
+def pause():
+    while 1:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+                return
 
-def go():
+def go(level):
     screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y])
     clock = pygame.time.Clock()
 
-    gol_state = numpy.zeros((800, 800))
-    x, y = gameoflife.glider_round1.shape
-    gol_state[:x, :y] = gameoflife.glider_round1
-    gol_state[4:6, 10:12] = 1
-    gol_state[10:13, 17:19] = 1
-
-    gol = GameOfLife(gol_state)
-    gol_state = None
+    gol = GameOfLife(level)
+    level = None
 
     sprites = pygame.sprite.Group()
     character = Character(gol, 5, 0)
@@ -239,7 +238,7 @@ def go():
                 if eventKey:
                     character.MoveInDirection(eventKey)
                 if event.key == pygame.K_p:
-                    pause = not pause
+                    pause()
                 elif event.key == pygame.K_q:
                     done = True
                 elif event.key == pygame.K_s:
@@ -258,9 +257,10 @@ def go():
         pygame.display.flip()
 
 def main():
+    level = rle.load(sys.argv[1])
+    pygame.init()
     try:
-        pygame.init()
-        go()
+        go(level)
     finally:
         pygame.quit()
     
