@@ -20,10 +20,8 @@ SCREEN_Y = 480
 
 class Character(pygame.sprite.Sprite):
     # Dir: X, Y
-    DSPEED = 1000
-    DIRECTIONS = {"LEFT":{"x":-DSPEED, "y":0},
-          "RIGHT":{"x":DSPEED, "y":0}}
-    G = 1
+    DSPEED = 10
+    G = 2
 
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
@@ -32,40 +30,35 @@ class Character(pygame.sprite.Sprite):
         self.image.fill(RED)
        
         self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = x * CELL_LENGTH, y * CELL_LENGTH
-        self.x = self.rect.x
-        self.y = self.rect.y
-        self.speed = {"x": None, "y": None}
+        self.x, self.y = x * CELL_LENGTH, y * CELL_LENGTH
+        self.vx = None
+        self.vy = None
 
     def Tick(self):
-        if self.speed["x"]:
-            self.x += self.speed["x"]
-        if self.speed["y"] != None:
-            self.y += self.speed["y"]
-            self.speed["y"] += Character.G
-        print self.speed
+        if self.vx:
+            self.x += self.vx
+        if self.vy != None:
+            self.y += self.vy
+            self.vy += Character.G
+        print self.vx, self.vy
 
     def MoveInDirection(self, direction):
         if not direction:
             return
         
         if direction == "LEFT":
-            self.speed["x"] = -Character.DSPEED
+            self.vx = -Character.DSPEED
         elif direction == "RIGHT":
-            self.speed["x"] = Character.DSPEED
-        elif direction == "SPACE" and self.speed["y"] == None:
-            self.speed["y"] = -Character.DSPEED
+            self.vx = Character.DSPEED
+        elif direction == "SPACE" and self.vy is None:
+            self.vy = -Character.DSPEED
 
     def StopMovement(self):
-        self.speed["x"] = None
+        self.vx = None
 
     def StopFalling(self):
-        self.speed["y"] = None
+        self.vy = None
 
-    def IsDead(self):
-        # TODO: DECIDE.
-        return (self.speed > -10 or
-                self.cell_y < -100)
 
 class Camera(object):
     FOLLOW_BORDER_WIDTH = 100
@@ -153,7 +146,7 @@ def go():
     gol_state = None
 
     sprites = pygame.sprite.Group()
-    character = Character(35, 28)
+    character = Character(0, 2)
     sprites.add(character)
 
     camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
