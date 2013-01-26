@@ -23,7 +23,7 @@ class Character(pygame.sprite.Sprite):
     DSPEED = 10
     G = 2
 
-    def __init__(self, x, y):
+    def __init__(self, gol, x, y):
         pygame.sprite.Sprite.__init__(self)
         
         self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH]) 
@@ -33,6 +33,8 @@ class Character(pygame.sprite.Sprite):
         self.x, self.y = x * CELL_LENGTH, y * CELL_LENGTH
         self.vx = None
         self.vy = None
+        
+        self.gol = gol
 
     def Tick(self):
         if self.vx:
@@ -101,6 +103,19 @@ class GameOfLife(object):
     def next_state(self):
         self._state = gameoflife.round(self._state)
     
+    def check_bottom_collision(self, (x0, y0), (x1, y1), width):
+        """
+        (x0, y0) are leftmost point of character's feet at beginning
+        of movement, (x1, y1) are leftmost point of character's feet
+        at end of movement with y1 incremented by 1 (so that if
+        character is standing still collision with the cell below will
+        keep being reported). width is width of character feet.
+
+        returns None if no collision below, (x, y) where character
+        should stop if there is collision.
+        """
+        raise NotImplementedError()
+
     def draw(self, camera, screen):
         camera_x, camera_y = camera.xy()
         gol_x0 = camera_x / CELL_LENGTH
@@ -147,7 +162,7 @@ def go():
     gol_state = None
 
     sprites = pygame.sprite.Group()
-    character = Character(0, 2)
+    character = Character(gol, 0, 2)
     sprites.add(character)
 
     camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
