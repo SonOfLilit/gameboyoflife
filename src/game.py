@@ -104,6 +104,7 @@ class GameOfLife(object):
         self._state = gameoflife.round(self._state)
     
     def check_bottom_collision(self, (x0, y0), (x1, y1), width):
+        # TODO: rename to check_floor_collision
         """
         (x0, y0) are leftmost point of character's feet at beginning
         of movement, (x1, y1) are leftmost point of character's feet
@@ -114,8 +115,48 @@ class GameOfLife(object):
         returns None if no collision below, (x, y) where character
         should stop if there is collision.
         """
-        raise NotImplementedError()
-
+        if y0 >= y1:
+            return None
+        
+        # Should be pretty easy to remove this limitation, just add a for loop
+        assert y1 - y0 < CELL_LENGTH, "character falling more than a cell in a tick not supported yet"
+        
+        
+        # character collides with floor only if at the beginning feet
+        # are wholly on white and at the end feet are at least
+        # partially on black AND collision with top of a cell happens
+        # before collision with side of that cell (assuming linear
+        # motion)
+        #
+        # So:
+        # 
+        # If at beginning we were (partially) in black, no collision
+        if self._at(x0, y0) or self._at(x0 + width, y0):
+            return None
+        # If at end we will be wholly in white, no collision
+        if self._at(x1, y1) and self._at(x1, y1):
+            return None
+        # Calculate x where we cross cells on y
+        y_crossing = y1 - (y1 % CELL_LENGTH)
+        # Can't be division by zero because of if at beginning of function
+        x_crossing = x0 + (x1 - x0) * (y_crossing - y0) / (y1 - y0)
+        # now, is this collision with floor or do we pass through side?
+        if self._at(x_crossing, y_crossing) or self._at(x_crossing + width, y_crossing):
+            # collision! return where character was stopped!
+            return x_crossing, y_crossing
+        else:
+            # passed through side, look how we're fully above white at
+            # moment of y crossing
+            return None
+        
+    def _at(self, x, y):
+        """
+        returns value at world x, y
+        """
+        gol_x = x / CELL_LENGTH
+        gol_y = y / CELL_LENGTH
+        return self._state[x, y]
+    
     def draw(self, camera, screen):
         camera_x, camera_y = camera.xy()
         gol_x0 = camera_x / CELL_LENGTH
