@@ -8,6 +8,7 @@ import gameoflife
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
 CELL_LENGTH = 30
@@ -25,7 +26,7 @@ class Character(pygame.sprite.Sprite):
     G = CELL_LENGTH / 10
     MAX_SPEED = CELL_LENGTH - 2
 
-    def __init__(self, gol, x, y):
+    def __init__(self, gol, door, x, y):
         pygame.sprite.Sprite.__init__(self)
         
         self.image = pygame.Surface([CELL_LENGTH / 2, CELL_LENGTH / 2]) 
@@ -37,14 +38,22 @@ class Character(pygame.sprite.Sprite):
         self.vy = 0
         
         self.gol = gol
+        self.door = door
 
     def Tick(self):
+        """ Retrun value is if won."""
         newX = self.x
         newY = self.y
         if self.vx:
             newX = self.x + self.vx
         if self.vy != None:
             newY = self.y + self.vy
+
+        # Check whether done.
+        won = self.door.Win(self.rect)
+        if won:
+            print "WIN"
+            return True
 
         # if we are 16 pixels high we span from some y to y + 15, thus the -1s
         stopping = self.gol.check_bottom_collision((self.x, self.y + self.rect.height - 1),
@@ -61,6 +70,7 @@ class Character(pygame.sprite.Sprite):
 
         self.x = newX
         self.y = newY
+        return False
 
     def MoveInDirection(self, direction):
         if not direction:
@@ -78,6 +88,25 @@ class Character(pygame.sprite.Sprite):
 
     def StopFalling(self):
         self.vy = 0
+
+
+class Door(pygame.sprite.Sprite):
+    # Dir: X, Y
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        
+        self.image = pygame.Surface([CELL_LENGTH / 2, CELL_LENGTH]) 
+        self.image.fill(GREEN)
+       
+        self.rect = self.image.get_rect()
+        self.x, self.y = x * CELL_LENGTH, y * CELL_LENGTH
+
+    def Tick(self):
+        pass
+
+    def Win(self, character_sprite_rect):
+        # Only call after the camera worked.
+        return self.rect.colliderect(character_sprite_rect)
 
 
 class Camera(object):
@@ -115,11 +144,11 @@ class Camera(object):
 
 class GameOfLife(object):
     def __init__(self, initial):
-        self._state = numpy.array(initial)
+        self._state = numpy.array(initial, dtype=int)
 
     def next_state(self):
         self._state = gameoflife.round(self._state)
-    
+
     def check_bottom_collision(self, (x0, y0), (x1, y1), width):
         # TODO: rename to check_floor_collision
         """
@@ -215,8 +244,10 @@ def go(level):
     level = None
 
     sprites = pygame.sprite.Group()
-    character = Character(gol, 5, 0)
+    door = Door(10, 10)
+    character = Character(gol, door, 5, 0)
     sprites.add(character)
+    sprites.add(door)
 
     camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
     
@@ -232,7 +263,7 @@ def go(level):
             elif event.type == GOL_TICK:
                 gol.next_state()
             elif event.type == PLAYER_TICK:
-                character.Tick()
+                done = character.Tick()
             elif event.type == pygame.KEYDOWN:
                 eventKey = PYGAME_KEY_TO_DIR.get(event.key, None)
                 if eventKey:
