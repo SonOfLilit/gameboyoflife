@@ -11,7 +11,7 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
-CELL_LENGTH = 30
+CELL_LENGTH = 10
 CELL_IMAGE = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
 CELL_IMAGE.fill(BLACK)
 
@@ -110,8 +110,8 @@ class Door(pygame.sprite.Sprite):
 
 
 class Camera(object):
-    FOLLOW_BORDER_WIDTH = 100
-    FOLLOW_SPEED = 4
+    FOLLOW_BORDER_WIDTH = 200
+    FOLLOW_SPEED = 6
     def __init__(self, rect):
         self._rect = rect
     
@@ -123,13 +123,13 @@ class Camera(object):
         """
         assumes that sprite.rect was updated recently, so run only after draw()
         """
-        if sprite.rect.left - self._rect.x < self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.left < self.FOLLOW_BORDER_WIDTH:
             self._rect.x -= self.FOLLOW_SPEED
-        if sprite.rect.right - self._rect.x > self._rect.w - self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.right > self._rect.w - self.FOLLOW_BORDER_WIDTH:
             self._rect.x += self.FOLLOW_SPEED
-        if sprite.rect.top - self._rect.y < self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.top < self.FOLLOW_BORDER_WIDTH: 
             self._rect.y -= self.FOLLOW_SPEED
-        if sprite.rect.bottom - self._rect.y > self._rect.h - self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.bottom > self._rect.h - self.FOLLOW_BORDER_WIDTH:
             self._rect.y += self.FOLLOW_SPEED
     
     def draw(self, sprites, screen):
@@ -209,8 +209,8 @@ class GameOfLife(object):
         # In a height H (parts of) up to (H/object_height)+1 objects may live side-by-side.
         # True, in the case where the camera is "synchronized" with the game world it will be
         # (H/object_height), but usually there are parts of objects at top and bottom.
-        for y in xrange(SCREEN_Y / CELL_LENGTH + 1):
-            for x in xrange(SCREEN_X / CELL_LENGTH + 1):
+        for y in xrange(SCREEN_Y / CELL_LENGTH + 2):
+            for x in xrange(SCREEN_X / CELL_LENGTH + 2):
                 # GOL coordinates of this cell
                 gol_x, gol_y = gol_x0 + x, gol_y0 + y
                 
@@ -236,7 +236,7 @@ def pause():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
                 return
 
-def go(level):
+def go(level, player_position, door_position):
     screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y])
     clock = pygame.time.Clock()
 
@@ -244,12 +244,12 @@ def go(level):
     level = None
 
     sprites = pygame.sprite.Group()
-    door = Door(10, 10)
-    character = Character(gol, door, 5, 0)
+    door = Door(*door_position)
+    character = Character(gol, door, *player_position)
     sprites.add(character)
     sprites.add(door)
 
-    camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
+    camera = Camera(pygame.Rect((player_position[0] - 20) * CELL_LENGTH, (player_position[1] - 20) * CELL_LENGTH, SCREEN_X, SCREEN_Y))
     
     done = False
     pygame.time.set_timer(GOL_TICK, 400)
@@ -288,10 +288,10 @@ def go(level):
         pygame.display.flip()
 
 def main():
-    level = rle.load(sys.argv[1])
+    gol, player, door = rle.load(sys.argv[1])
     pygame.init()
     try:
-        go(level)
+        go(gol, player, door)
     finally:
         pygame.quit()
     

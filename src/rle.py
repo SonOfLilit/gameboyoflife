@@ -1,4 +1,7 @@
 import numpy
+import re
+
+LEVEL_DATA_RE = re.compile(r"# Player: (\d+,\d+) Door: (\d+,\d+)$")
 
 #reads pattern files in the "Life 1.05", "Life 1.06", and "Run-Length-Encoded" format
 def load_rle(path):
@@ -22,9 +25,16 @@ def load_rle(path):
     colint      = 0
     done        = False
     info        = []
+    player_position = None
+    door_position = None
     with open(path, "r") as lif:
         structure = set()
         for line in lif:
+            match = LEVEL_DATA_RE.match(line)
+            if match:
+                player_position, door_position = match.groups()
+                player_position = map(int, player_position.split(","))
+                door_position = map(int, door_position.split(","))
             if line[:2] in ("#P","#R"):
                 nums = line[3:].split(" ")
                 block_start  = (int(nums[0]),int(nums[1]))
@@ -68,18 +78,29 @@ def load_rle(path):
                         done = True
                 if done:
                     break
+        
+        if player_position is None or door_position is None:
+            assert False, "Level should contain level informaion: player and door positions"
 
 #        return(structure,info)
-        return structure
+        return structure, player_position, door_position
 
 BOARD_LENGTH = 1000
 def load(path):
-    pattern = load_rle(path)
+    """
+    returns (board, player_position, door_position)
+    """
+    pattern, player_position, door_position = load_rle(path)
     x_list, y_list = zip(*pattern)
-    size = max(x_list) + 1, max(y_list) + 1
+    size = numpy.array([max(x_list) + 1, max(y_list) + 1])
     # we always load a BOARD_LENGTH*BOARD_LENGTH (excluding the empty edges) board
     assert max(size) <= BOARD_LENGTH
     board = numpy.zeros((BOARD_LENGTH + 2, BOARD_LENGTH + 2), dtype=numpy.int)
+    padding = (BOARD_LENGTH - size) / 2 + 1
     for x, y in pattern:
-        board[x + 1, y + 1] = 1
-    return board
+        board[x + padding[0], y + padding[1]] = 1
+    
+    player_position = list(padding + player_position)
+    door_position = list(padding + door_position)
+
+    return board, player_position, door_position
