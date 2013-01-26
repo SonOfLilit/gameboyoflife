@@ -1,58 +1,7 @@
 import pygame
 import numpy
 
-def gol_round(Z):
-    """
-    From http://dana.loria.fr/doc/game-of-life.html
-    """
-    # find number of neighbours that each square has
-    N = numpy.zeros(Z.shape)
-    N[1:, 1:] += Z[:-1, :-1]
-    N[1:, :-1] += Z[:-1, 1:]
-    N[:-1, 1:] += Z[1:, :-1]
-    N[:-1, :-1] += Z[1:, 1:]
-    N[:-1, :] += Z[1:, :]
-    N[1:, :] += Z[:-1, :]
-    N[:, :-1] += Z[:, 1:]
-    N[:, 1:] += Z[:, :-1]
-    # zero the edges
-    N[0,: ] = 0
-    N[-1,: ] = 0
-    N[:, 0] = 0
-    N[:, -1] = 0
-    # a live cell is killed if it has fewer than 2 or more than 3 neighbours.
-    part1 = ((Z == 1) & (N < 4) & (N > 1))
-    # a new cell forms if a square has exactly three members
-    part2 = ((Z == 0) & (N == 3))
-    return (part1 | part2).astype(int)
-
-glider_round1 = numpy.array(
-    [[0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 1, 0, 0],
-     [0, 1, 0, 1, 0, 0],
-     [0, 0, 1, 1, 0, 0],
-     [0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0]])
-glider_round2 = numpy.array(
-    [[0, 0, 0, 0, 0, 0],
-     [0, 0, 1, 0, 0, 0],
-     [0, 0, 0, 1, 1, 0],
-     [0, 0, 1, 1, 0, 0],
-     [0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0]])
-assert (gol_round(glider_round1) == glider_round2).all()
-# test that outer edges remain zero
-glider = glider_round1
-for i in xrange(20):
-    glider = gol_round(glider)
-square = numpy.array(
-    [[0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 1, 1, 0],
-     [0, 0, 0, 1, 1, 0],
-     [0, 0, 0, 0, 0, 0]])
-assert (glider == square).all()
+import gameoflife
 
 
 BLACK = (0, 0, 0)
@@ -119,7 +68,8 @@ class Character(pygame.sprite.Sprite):
                 self.cell_y < -100)
 
 class Camera(object):
-    FOLLOW_BORDER_WIDTH = 50
+    FOLLOW_BORDER_WIDTH = 100
+    FOLLOW_SPEED = 4
     def __init__(self, rect):
         self._rect = rect
     
@@ -128,27 +78,55 @@ class Camera(object):
         self._rect.y += y
     
     def follow_sprite(self, sprite):
-        if sprite.x + self._rect.left < self.FOLLOW_BORDER_WIDTH:
-            self._rect.x += 1
-        if sprite.x > self._rect.right - self.FOLLOW_BORDER_WIDTH:
-            self._rect.x -= 1
-        if sprite.y + self._rect.top < self.FOLLOW_BORDER_WIDTH:
-            self._rect.y += 1
-        if sprite.y > self._rect.bottom - self.FOLLOW_BORDER_WIDTH:
-            self._rect.y -= 1
+        if sprite.x - self._rect.x < self.FOLLOW_BORDER_WIDTH:
+            self._rect.x -= self.FOLLOW_SPEED
+        if sprite.x - self._rect.x > self._rect.w - self.FOLLOW_BORDER_WIDTH:
+            self._rect.x += self.FOLLOW_SPEED
+        if sprite.y - self._rect.y < self.FOLLOW_BORDER_WIDTH:
+            self._rect.y -= self.FOLLOW_SPEED
+        if sprite.y - self._rect.y > self._rect.h - self.FOLLOW_BORDER_WIDTH:
+            self._rect.y += self.FOLLOW_SPEED
         
             
 
     def draw(self, sprites, screen):
         group = pygame.sprite.Group()
         for sprite in sprites:
-            sprite.rect.x, sprite.rect.y = sprite.x + self._rect.x, sprite.y + self._rect.y
+            sprite.rect.x, sprite.rect.y = sprite.x - self._rect.x, sprite.y - self._rect.y
             group.add(sprite)
         group.draw(screen)
     
     def xy(self):
         return self._rect.x, self._rect.y
 
+
+class GameOfLife(object):
+    def __init__(self, initial):
+        self._state = numpy.array(initial)
+
+    def next_state(self):
+        self._state = gameoflife.round(self._state)
+    
+    def draw(self, camera, screen):
+        camera_x, camera_y = camera.xy()
+        gol_x0 = camera_x / CELL_LENGTH
+        gol_y0 = camera_y / CELL_LENGTH
+        # In a height H (parts of) up to (H/object_height)+1 objects may live side-by-side.
+        # True, in the case where the camera is "synchronized" with the game world it will be
+        # (H/object_height), but usually there are parts of objects at top and bottom.
+        for y in xrange(SCREEN_Y / CELL_LENGTH + 1):
+            for x in xrange(SCREEN_X / CELL_LENGTH + 1):
+                # GOL coordinates of this cell
+                gol_x, gol_y = gol_x0 + x, gol_y0 + y
+                
+                if self._state[gol_x, gol_y]:
+                    # screen coordinates of this cell with this camera
+                    cell_y = -(camera_y % CELL_LENGTH) + CELL_LENGTH * y
+                    cell_x = -(camera_x % CELL_LENGTH) + CELL_LENGTH * x
+                    rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
+                    screen.fill(BLACK, rect)
+        
+        
 GOL_TICK = pygame.USEREVENT + 0
 PLAYER_TICK = pygame.USEREVENT + 1
 
@@ -166,13 +144,16 @@ def go():
     clock = pygame.time.Clock()
 
     gol_state = numpy.zeros((800, 800))
-    x, y = glider_round1.shape
-    gol_state[:x, :y] = glider_round1
+    x, y = gameoflife.glider_round1.shape
+    gol_state[:x, :y] = gameoflife.glider_round1
     gol_state[4:6, 10:12] = 1
     gol_state[10:13, 17:19] = 1
 
+    gol = GameOfLife(gol_state)
+    gol_state = None
+
     sprites = pygame.sprite.Group()
-    character = Character(0, 0)
+    character = Character(35, 28)
     sprites.add(character)
 
     camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
@@ -187,7 +168,7 @@ def go():
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == GOL_TICK:
-                gol_state = gol_round(gol_state)
+                gol.next_state()
             elif event.type == PLAYER_TICK:
                 character.Tick()
             elif event.type == pygame.KEYDOWN:
@@ -203,26 +184,9 @@ def go():
             elif event.type == pygame.KEYUP:
                 character.StopMovement()
 
-        screen.fill(BLUE)
+        screen.fill(WHITE)
         
-        camera_x, camera_y = camera.xy()
-        gol_x0 = camera_x / CELL_LENGTH
-        gol_y0 = camera_y / CELL_LENGTH
-        # In a height H (parts of) up to (H/object_height)+1 objects may live side-by-side.
-        # True, in the case where the camera is "synchronized" with the game world it will be
-        # (H/object_height), but usually there are parts of objects at top and bottom.
-        for y in xrange(SCREEN_Y / CELL_LENGTH + 1):
-            for x in xrange(SCREEN_X / CELL_LENGTH + 1):
-                # coordinates of this cell in gol_state
-                gol_x, gol_y = gol_x0 + x, gol_y0 + y
-                
-                if gol_state[gol_x, gol_y]:
-                    # screen coordinates of this cell with this camera
-                    cell_y = -(camera_y % CELL_LENGTH) + CELL_LENGTH * y
-                    cell_x = -(camera_x % CELL_LENGTH) + CELL_LENGTH * x
-                    rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
-                    screen.fill(BLACK, rect)
-        
+        gol.draw(camera, screen)
         camera.draw(sprites, screen)
         
         camera.follow_sprite(character)
