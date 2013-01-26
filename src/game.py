@@ -105,7 +105,7 @@ class Door(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
         
-        self.image = pygame.Surface([CELL_LENGTH / 2, CELL_LENGTH]) 
+        self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH * 2]) 
         self.image.fill(GREEN)
        
         self.rect = self.image.get_rect()
@@ -123,34 +123,38 @@ class Camera(object):
     FOLLOW_BORDER_WIDTH = 200
     FOLLOW_SPEED = 6
     def __init__(self, rect):
-        self._rect = rect
+        self.rect = rect
     
     def move(self, x, y):
-        self._rect.x += x
-        self._rect.y += y
+        self.rect.x += x
+        self.rect.y += y
     
     def follow_sprite(self, sprite):
         """
         assumes that sprite.rect was updated recently, so run only after draw()
         """
         if sprite.rect.left < self.FOLLOW_BORDER_WIDTH:
-            self._rect.x -= self.FOLLOW_SPEED
-        if sprite.rect.right > self._rect.w - self.FOLLOW_BORDER_WIDTH:
-            self._rect.x += self.FOLLOW_SPEED
+            self.rect.x -= self.FOLLOW_SPEED
+        if sprite.rect.right > self.rect.w - self.FOLLOW_BORDER_WIDTH:
+            self.rect.x += self.FOLLOW_SPEED
         if sprite.rect.top < self.FOLLOW_BORDER_WIDTH: 
-            self._rect.y -= self.FOLLOW_SPEED
-        if sprite.rect.bottom > self._rect.h - self.FOLLOW_BORDER_WIDTH:
-            self._rect.y += self.FOLLOW_SPEED
+            self.rect.y -= self.FOLLOW_SPEED
+        if sprite.rect.bottom > self.rect.h - self.FOLLOW_BORDER_WIDTH:
+            self.rect.y += self.FOLLOW_SPEED
     
     def draw(self, sprites, screen):
         group = pygame.sprite.Group()
         for sprite in sprites:
-            sprite.rect.x, sprite.rect.y = sprite.x - self._rect.x, sprite.y - self._rect.y
+            sprite.rect.x, sprite.rect.y = sprite.x - self.rect.x, sprite.y - self.rect.y
             group.add(sprite)
         group.draw(screen)
     
     def xy(self):
-        return self._rect.x, self._rect.y
+        return self.rect.x, self.rect.y
+
+    def out_of_screen(self, character_sprite):
+        return character_sprite.rect.y > self.rect.height
+
 
 class GameOfLife(object):
     def __init__(self, initial):
@@ -296,6 +300,9 @@ def go(level, player_position, door_position):
         camera.draw(sprites, screen)
         
         camera.follow_sprite(character)
+        if camera.out_of_screen(character):
+            print "GAME OVER."
+            done = True
 
         clock.tick(20)
         pygame.display.flip()
