@@ -71,17 +71,18 @@ class Camera(object):
         self._rect.y += y
     
     def follow_sprite(self, sprite):
-        if sprite.x - self._rect.x < self.FOLLOW_BORDER_WIDTH:
+        """
+        assumes that sprite.rect was updated recently, so run only after draw()
+        """
+        if sprite.rect.left - self._rect.x < self.FOLLOW_BORDER_WIDTH:
             self._rect.x -= self.FOLLOW_SPEED
-        if sprite.x - self._rect.x > self._rect.w - self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.right - self._rect.x > self._rect.w - self.FOLLOW_BORDER_WIDTH:
             self._rect.x += self.FOLLOW_SPEED
-        if sprite.y - self._rect.y < self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.top - self._rect.y < self.FOLLOW_BORDER_WIDTH:
             self._rect.y -= self.FOLLOW_SPEED
-        if sprite.y - self._rect.y > self._rect.h - self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.bottom - self._rect.y > self._rect.h - self.FOLLOW_BORDER_WIDTH:
             self._rect.y += self.FOLLOW_SPEED
-        
-            
-
+    
     def draw(self, sprites, screen):
         group = pygame.sprite.Group()
         for sprite in sprites:
