@@ -281,7 +281,7 @@ def go(level, player_position, door_position):
                 if event.key == pygame.K_p:
                     pause()
                 elif event.key == pygame.K_r:
-                    raise RestartException()
+                    return go(level, player_position, door_position)
                 elif event.key == pygame.K_q:
                     done = True
                 elif event.key == pygame.K_s:
@@ -300,19 +300,16 @@ def go(level, player_position, door_position):
         clock.tick(20)
         pygame.display.flip()
 
-def go_continuously(gol, player, door):
-    try:
-        go(gol, player, door)
-    except RestartException:
-        go_continuously(gol, player, door)
-
 def main():
     gol, player, door = rle.load(sys.argv[1])
     pygame.init()
     try:
-        go_continuously(gol, player, door)
+        go(gol, player, door)
     finally:
         pygame.quit()
-    
+
+
 if __name__ == "__main__":
     main()
+else:
+    print __name__
