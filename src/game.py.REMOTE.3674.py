@@ -1,6 +1,7 @@
 import pygame
 import numpy
 
+
 def gol_round(Z):
     """
     From http://dana.loria.fr/doc/game-of-life.html
@@ -69,54 +70,45 @@ GOL_TICK = pygame.USEREVENT + 0
 SCREEN_X = 640
 SCREEN_Y = 480
 
+
 class Character(pygame.sprite.Sprite):
     # Dir: X, Y
-    DSPEED = 1000
-    DIRECTIONS = {"LEFT":{"x":-DSPEED, "y":0},
-          "RIGHT":{"x":DSPEED, "y":0}}
-    G = 1
-
-    def __init__(self, x, y):
+    DIRECTIONS = {"UP":(0,2),
+                  "DOWN":(0,-2),
+                  "LEFT":(-2, 0),
+                  "RIGHT":(2, 0)}
+    def __init__(self, x, y, speed=(0, 0), acc=(0, 0)):
         pygame.sprite.Sprite.__init__(self)
         
         self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH]) 
         self.image.fill(RED)
        
         self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = x * CELL_LENGTH, y * CELL_LENGTH
-        self.x = self.rect.x
-        self.y = self.rect.y
-        self.speed = {"x": None, "y": None}
+        self.x, self.y = x * CELL_LENGTH, y * CELL_LENGTH
+        self.speed = speed
+        self.acc = acc
 
     def Tick(self):
-        if self.speed["x"]:
-            self.x += self.speed["x"]
-        if self.speed["y"] != None:
-            self.y += self.speed["y"]
-            self.speed["y"] += Character.G
+        self.speed = (self.speed[0] + self.acc[0], self.speed[1] + self.acc[1])
+        self.x += self.speed[0]
+        self.y += self.speed[1]
+        print "x:" , self.x
         print self.speed
 
-    def MoveInDirection(self, direction):
+    def GainAcceleration(self, direction):
         if not direction:
             return
-        
-        if direction == "LEFT":
-            self.speed["x"] = -Character.DSPEED
-        elif direction == "RIGHT":
-            self.speed["x"] = Character.DSPEED
-        elif direction == "SPACE" and self.speed["y"] == None:
-            self.speed["y"] = -Character.DSPEED
+        self.acc = self.acc + Character.DIRECTIONS[direction]
+        print self.acc
 
-    def StopMovement(self):
-        self.speed["x"] = None
-
-    def StopFalling(self):
-        self.speed["y"] = None
+    def LostAcceleration(self):
+        self.acc = 0, 0
 
     def IsDead(self):
         # TODO: DECIDE.
         return (self.speed > -10 or
                 self.cell_y < -100)
+
 
 class Camera(object):
     FOLLOW_BORDER_WIDTH = 50
@@ -149,14 +141,15 @@ class Camera(object):
     def xy(self):
         return self._rect.x, self._rect.y
 
+
+
 GOL_TICK = pygame.USEREVENT + 0
-PLAYER_TICK = pygame.USEREVENT + 1
+
 
 # This dir is for key pressess which should affect direction.
 # Use diffn't dir for other functions.
 PYGAME_KEY_TO_DIR = {pygame.K_LEFT : "LEFT",
-                     pygame.K_RIGHT : "RIGHT",
-                     pygame.K_SPACE : "SPACE"}
+                     pygame.K_RIGHT : "RIGHT"}
 
 # TODO: Utilze this?
 PYGAME_KEY_TO_FUNC = {pygame.K_p : "PAUSEKEY"}
@@ -177,9 +170,10 @@ def go():
 
     camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
     
+    pygame.time.set_timer(GOL_TICK, 200)
+
     done = False
     pygame.time.set_timer(GOL_TICK, 400)
-    pygame.time.set_timer(PLAYER_TICK, 50)
 
     done = False
     while not done:
@@ -188,20 +182,18 @@ def go():
                 done = True
             elif event.type == GOL_TICK:
                 gol_state = gol_round(gol_state)
-            elif event.type == PLAYER_TICK:
                 character.Tick()
             elif event.type == pygame.KEYDOWN:
                 eventKey = PYGAME_KEY_TO_DIR.get(event.key, None)
                 if eventKey:
-                    character.MoveInDirection(eventKey)
+                    character.GainAcceleration(eventKey)
                 if event.key == pygame.K_p:
                     pause = not pause
                 elif event.key == pygame.K_q:
                     done = True
-                elif event.key == pygame.K_s:
-                    character.StopFalling()
             elif event.type == pygame.KEYUP:
-                character.StopMovement()
+                character.LostAcceleration()
+
 
         screen.fill(BLUE)
         
@@ -222,6 +214,7 @@ def go():
                     cell_x = -(camera_x % CELL_LENGTH) + CELL_LENGTH * x
                     rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
                     screen.fill(BLACK, rect)
+        
         
         camera.draw(sprites, screen)
         

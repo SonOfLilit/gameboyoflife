@@ -1,6 +1,7 @@
 import pygame
 import numpy
 
+
 def gol_round(Z):
     """
     From http://dana.loria.fr/doc/game-of-life.html
@@ -69,14 +70,14 @@ GOL_TICK = pygame.USEREVENT + 0
 SCREEN_X = 640
 SCREEN_Y = 480
 
+
 class Character(pygame.sprite.Sprite):
     # Dir: X, Y
-    DSPEED = 1000
-    DIRECTIONS = {"LEFT":{"x":-DSPEED, "y":0},
-          "RIGHT":{"x":DSPEED, "y":0}}
-    G = 1
-
-    def __init__(self, x, y):
+    DIRECTIONS = {"UP":(0,2),
+                  "DOWN":(0,-2),
+                  "LEFT":(-2, 0),
+                  "RIGHT":(2, 0)}
+    def __init__(self, x, y, speed=(0, 0), acc=(0, 0)):
         pygame.sprite.Sprite.__init__(self)
         
         self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH]) 
@@ -84,79 +85,38 @@ class Character(pygame.sprite.Sprite):
        
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x * CELL_LENGTH, y * CELL_LENGTH
-        self.x = self.rect.x
-        self.y = self.rect.y
-        self.speed = {"x": None, "y": None}
+        self.speed = speed
+        self.acc = acc
 
     def Tick(self):
-        if self.speed["x"]:
-            self.x += self.speed["x"]
-        if self.speed["y"] != None:
-            self.y += self.speed["y"]
-            self.speed["y"] += Character.G
+        self.speed = (self.speed[0] + self.acc[0], self.speed[1] + self.acc[1])
+        self.rect.x += self.speed[0]
+        self.rect.y += self.speed[1]
+        print "x:" , self.rect.x
         print self.speed
 
-    def MoveInDirection(self, direction):
+    def GainAcceleration(self, direction):
         if not direction:
             return
-        
-        if direction == "LEFT":
-            self.speed["x"] = -Character.DSPEED
-        elif direction == "RIGHT":
-            self.speed["x"] = Character.DSPEED
-        elif direction == "SPACE" and self.speed["y"] == None:
-            self.speed["y"] = -Character.DSPEED
+        self.acc = self.acc + Character.DIRECTIONS[direction]
+        print self.acc
 
-    def StopMovement(self):
-        self.speed["x"] = None
-
-    def StopFalling(self):
-        self.speed["y"] = None
+    def LostAcceleration(self):
+        self.acc = 0, 0
 
     def IsDead(self):
         # TODO: DECIDE.
         return (self.speed > -10 or
                 self.cell_y < -100)
 
-class Camera(object):
-    FOLLOW_BORDER_WIDTH = 50
-    def __init__(self, rect):
-        self._rect = rect
-    
-    def move(self, x, y):
-        self._rect.x += x
-        self._rect.y += y
-    
-    def follow_sprite(self, sprite):
-        if sprite.x + self._rect.left < self.FOLLOW_BORDER_WIDTH:
-            self._rect.x += 1
-        if sprite.x > self._rect.right - self.FOLLOW_BORDER_WIDTH:
-            self._rect.x -= 1
-        if sprite.y + self._rect.top < self.FOLLOW_BORDER_WIDTH:
-            self._rect.y += 1
-        if sprite.y > self._rect.bottom - self.FOLLOW_BORDER_WIDTH:
-            self._rect.y -= 1
-        
-            
-
-    def draw(self, sprites, screen):
-        group = pygame.sprite.Group()
-        for sprite in sprites:
-            sprite.rect.x, sprite.rect.y = sprite.x + self._rect.x, sprite.y + self._rect.y
-            group.add(sprite)
-        group.draw(screen)
-    
-    def xy(self):
-        return self._rect.x, self._rect.y
 
 GOL_TICK = pygame.USEREVENT + 0
-PLAYER_TICK = pygame.USEREVENT + 1
+
 
 # This dir is for key pressess which should affect direction.
 # Use diffn't dir for other functions.
 PYGAME_KEY_TO_DIR = {pygame.K_LEFT : "LEFT",
-                     pygame.K_RIGHT : "RIGHT",
-                     pygame.K_SPACE : "SPACE"}
+                     pygame.K_RIGHT : "RIGHT"}
 
 # TODO: Utilze this?
 PYGAME_KEY_TO_FUNC = {pygame.K_p : "PAUSEKEY"}
@@ -172,14 +132,16 @@ def go():
     gol_state[10:13, 17:19] = 1
 
     sprites = pygame.sprite.Group()
-    character = Character(0, 0)
+    character = Character(10, 10)
     sprites.add(character)
+    # TODO Make sure to draw this Guy.
 
-    camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
+    camera_x, camera_y = 0, 0
     
+    pygame.time.set_timer(GOL_TICK, 200)
+
     done = False
     pygame.time.set_timer(GOL_TICK, 400)
-    pygame.time.set_timer(PLAYER_TICK, 50)
 
     done = False
     while not done:
@@ -188,24 +150,21 @@ def go():
                 done = True
             elif event.type == GOL_TICK:
                 gol_state = gol_round(gol_state)
-            elif event.type == PLAYER_TICK:
                 character.Tick()
             elif event.type == pygame.KEYDOWN:
                 eventKey = PYGAME_KEY_TO_DIR.get(event.key, None)
                 if eventKey:
-                    character.MoveInDirection(eventKey)
+                    character.GainAcceleration(eventKey)
                 if event.key == pygame.K_p:
                     pause = not pause
                 elif event.key == pygame.K_q:
                     done = True
-                elif event.key == pygame.K_s:
-                    character.StopFalling()
             elif event.type == pygame.KEYUP:
-                character.StopMovement()
+                character.LostAcceleration()
+
 
         screen.fill(BLUE)
         
-        camera_x, camera_y = camera.xy()
         gol_x0 = camera_x / CELL_LENGTH
         gol_y0 = camera_y / CELL_LENGTH
         # In a height H (parts of) up to (H/object_height)+1 objects may live side-by-side.
@@ -223,9 +182,10 @@ def go():
                     rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
                     screen.fill(BLACK, rect)
         
-        camera.draw(sprites, screen)
-        
-        camera.follow_sprite(character)
+        sprites.draw(screen)
+
+        camera_x -= 1
+        camera_y -= 2
 
         clock.tick(20)
         pygame.display.flip()

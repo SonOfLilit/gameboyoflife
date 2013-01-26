@@ -118,37 +118,6 @@ class Character(pygame.sprite.Sprite):
         return (self.speed > -10 or
                 self.cell_y < -100)
 
-class Camera(object):
-    FOLLOW_BORDER_WIDTH = 50
-    def __init__(self, rect):
-        self._rect = rect
-    
-    def move(self, x, y):
-        self._rect.x += x
-        self._rect.y += y
-    
-    def follow_sprite(self, sprite):
-        if sprite.x + self._rect.left < self.FOLLOW_BORDER_WIDTH:
-            self._rect.x += 1
-        if sprite.x > self._rect.right - self.FOLLOW_BORDER_WIDTH:
-            self._rect.x -= 1
-        if sprite.y + self._rect.top < self.FOLLOW_BORDER_WIDTH:
-            self._rect.y += 1
-        if sprite.y > self._rect.bottom - self.FOLLOW_BORDER_WIDTH:
-            self._rect.y -= 1
-        
-            
-
-    def draw(self, sprites, screen):
-        group = pygame.sprite.Group()
-        for sprite in sprites:
-            sprite.rect.x, sprite.rect.y = sprite.x + self._rect.x, sprite.y + self._rect.y
-            group.add(sprite)
-        group.draw(screen)
-    
-    def xy(self):
-        return self._rect.x, self._rect.y
-
 GOL_TICK = pygame.USEREVENT + 0
 PLAYER_TICK = pygame.USEREVENT + 1
 
@@ -172,10 +141,10 @@ def go():
     gol_state[10:13, 17:19] = 1
 
     sprites = pygame.sprite.Group()
-    character = Character(0, 0)
+    character = Character(10, 10)
     sprites.add(character)
 
-    camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
+    camera_x, camera_y = 0, 0
     
     done = False
     pygame.time.set_timer(GOL_TICK, 400)
@@ -205,7 +174,6 @@ def go():
 
         screen.fill(BLUE)
         
-        camera_x, camera_y = camera.xy()
         gol_x0 = camera_x / CELL_LENGTH
         gol_y0 = camera_y / CELL_LENGTH
         # In a height H (parts of) up to (H/object_height)+1 objects may live side-by-side.
@@ -223,9 +191,10 @@ def go():
                     rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
                     screen.fill(BLACK, rect)
         
-        camera.draw(sprites, screen)
-        
-        camera.follow_sprite(character)
+        sprites.draw(screen)
+
+        camera_x -= 0
+        camera_y -= 0
 
         clock.tick(20)
         pygame.display.flip()

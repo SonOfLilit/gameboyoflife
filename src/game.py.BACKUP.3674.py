@@ -83,6 +83,7 @@ class Character(pygame.sprite.Sprite):
         self.image.fill(RED)
        
         self.rect = self.image.get_rect()
+<<<<<<< HEAD
         self.rect.x, self.rect.y = x * CELL_LENGTH, y * CELL_LENGTH
         self.x = self.rect.x
         self.y = self.rect.y
@@ -94,6 +95,17 @@ class Character(pygame.sprite.Sprite):
         if self.speed["y"] != None:
             self.y += self.speed["y"]
             self.speed["y"] += Character.G
+=======
+        self.x, self.y = x * CELL_LENGTH, y * CELL_LENGTH
+        self.speed = speed
+        self.acc = acc
+
+    def Tick(self):
+        self.speed = (self.speed[0] + self.acc[0], self.speed[1] + self.acc[1])
+        self.x += self.speed[0]
+        self.y += self.speed[1]
+        print "x:" , self.x
+>>>>>>> 6d92dfdabc81e75beb6a752a948f8b6870f45e18
         print self.speed
 
     def MoveInDirection(self, direction):
@@ -117,6 +129,9 @@ class Character(pygame.sprite.Sprite):
         # TODO: DECIDE.
         return (self.speed > -10 or
                 self.cell_y < -100)
+
+<<<<<<< HEAD
+=======
 
 class Camera(object):
     FOLLOW_BORDER_WIDTH = 50
@@ -149,6 +164,9 @@ class Camera(object):
     def xy(self):
         return self._rect.x, self._rect.y
 
+
+
+>>>>>>> 6d92dfdabc81e75beb6a752a948f8b6870f45e18
 GOL_TICK = pygame.USEREVENT + 0
 PLAYER_TICK = pygame.USEREVENT + 1
 
@@ -223,9 +241,17 @@ def go():
                     rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
                     screen.fill(BLACK, rect)
         
+<<<<<<< HEAD
+        sprites.draw(screen)
+
+        camera_x -= 0
+        camera_y -= 0
+=======
+        
         camera.draw(sprites, screen)
         
         camera.follow_sprite(character)
+>>>>>>> 6d92dfdabc81e75beb6a752a948f8b6870f45e18
 
         clock.tick(20)
         pygame.display.flip()
