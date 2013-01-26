@@ -153,7 +153,7 @@ class Camera(object):
         return self.rect.x, self.rect.y
 
     def out_of_screen(self, character_sprite):
-        return character_sprite.rect.y > self.rect.height
+        return character_sprite.rect.bottom > self.rect.height
 
 
 class GameOfLife(object):
