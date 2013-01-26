@@ -19,8 +19,9 @@ SCREEN_Y = 480
 
 class Character(pygame.sprite.Sprite):
     # Dir: X, Y
-    DSPEED = 10
-    G = 2
+    DSPEED = CELL_LENGTH / 2
+    G = CELL_LENGTH / 10
+    MAX_SPEED = CELL_LENGTH - 2
 
     def __init__(self, gol, x, y):
         pygame.sprite.Sprite.__init__(self)
@@ -30,28 +31,31 @@ class Character(pygame.sprite.Sprite):
        
         self.rect = self.image.get_rect()
         self.x, self.y = x * CELL_LENGTH, y * CELL_LENGTH
-        self.width, self.height = CELL_LENGTH, CELL_LENGTH
-        self.vx = None
-        self.vy = None
+        self.vx = 0
+        self.vy = 0
         
         self.gol = gol
 
     def Tick(self):
-        newX = 0
-        newY = 0
+        newX = self.x
+        newY = self.y
         if self.vx:
             newX = self.x + self.vx
         if self.vy != None:
             newY = self.y + self.vy
 
-        stoping = self.gol.check_bottom_collision((self.x, self.y + self.height),
-                                                (newX, newY + self.height + 1),
-                                                self.width)
+        # if we are 16 pixels high we span from some y to y + 15, thus the -1s
+        stopping = self.gol.check_bottom_collision((self.x, self.y + self.rect.height - 1),
+                                                (newX, newY + self.rect.height),
+                                                self.rect.width - 1)
         if stopping:
-            newY = stopping[1]
-            StopFalling()
+            newX = stopping[0]
+            newY = stopping[1] - self.rect.height
+            self.StopFalling()
         else:
             self.vy += Character.G
+            if self.vy > Character.MAX_SPEED:
+                self.vy = Character.MAX_SPEED
 
         self.x = newX
         self.y = newY
@@ -68,10 +72,10 @@ class Character(pygame.sprite.Sprite):
             self.vy = -Character.DSPEED
 
     def StopMovement(self):
-        self.vx = None
+        self.vx = 0
 
     def StopFalling(self):
-        self.vy = None
+        self.vy = 0
 
 
 class Camera(object):
@@ -134,18 +138,18 @@ class GameOfLife(object):
         
         
         # character collides with floor only if at the beginning feet
-        # are wholly on white and at the end feet are at least
+        # are at least partially on white and at the end feet are at least
         # partially on black AND collision with top of a cell happens
         # before collision with side of that cell (assuming linear
         # motion)
         #
         # So:
         # 
-        # If at beginning we were (partially) in black, no collision
-        if self._at(x0, y0) or self._at(x0 + width, y0):
+        # If at beginning we were wholly in black, no collision
+        if self._at(x0, y0) and self._at(x0 + width, y0):
             return None
         # If at end we will be wholly in white, no collision
-        if self._at(x1, y1) and self._at(x1, y1):
+        if not self._at(x1, y1) and not self._at(x1 + width, y1):
             return None
         # Calculate x where we cross cells on y
         y_crossing = y1 - (y1 % CELL_LENGTH)
@@ -166,7 +170,7 @@ class GameOfLife(object):
         """
         gol_x = x / CELL_LENGTH
         gol_y = y / CELL_LENGTH
-        return self._state[x, y]
+        return self._state[gol_x, gol_y]
     
     def draw(self, camera, screen):
         camera_x, camera_y = camera.xy()
@@ -213,7 +217,7 @@ def go():
     gol_state = None
 
     sprites = pygame.sprite.Group()
-    character = Character(gol, 0, 2)
+    character = Character(gol, 5, 0)
     sprites.add(character)
 
     camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
@@ -249,7 +253,7 @@ def go():
         gol.draw(camera, screen)
         camera.draw(sprites, screen)
         
-        camera.follow_sprite(character)
+        #camera.follow_sprite(character)
 
         clock.tick(20)
         pygame.display.flip()
