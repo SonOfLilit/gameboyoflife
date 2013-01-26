@@ -44,13 +44,13 @@ class Character(pygame.sprite.Sprite):
         if self.vy != None:
             newY = self.y + self.vy
 
-        stoping = self.gol.checkBottomCollision((self.x, self.y + self.height),
+        stoping = self.gol.check_bottom_collision((self.x, self.y + self.height),
                                                 (newX, newY + self.height + 1),
                                                 self.width)
         if stopping:
             newY = stopping[1]
             StopFalling()
-        else
+        else:
             self.vy += Character.G
 
         self.x = newX

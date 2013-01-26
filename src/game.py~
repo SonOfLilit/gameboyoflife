@@ -3,7 +3,6 @@ import numpy
 
 import gameoflife
 
-
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
@@ -23,7 +22,7 @@ class Character(pygame.sprite.Sprite):
     DSPEED = 10
     G = 2
 
-    def __init__(self, x, y):
+    def __init__(self, gol, x, y):
         pygame.sprite.Sprite.__init__(self)
         
         self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH]) 
@@ -34,6 +33,8 @@ class Character(pygame.sprite.Sprite):
         self.width, self.height = CELL_LENGTH, CELL_LENGTH
         self.vx = None
         self.vy = None
+        
+        self.gol = gol
 
     def Tick(self):
         newX = 0
@@ -43,13 +44,13 @@ class Character(pygame.sprite.Sprite):
         if self.vy != None:
             newY = self.y + self.vy
 
-        stoping = self.gol.checkBottomCollision((self.x, self.y + self.height),
+        stoping = self.gol.check_bottom_collision((self.x, self.y + self.height),
                                                 (newX, newY + self.height + 1),
                                                 self.width)
         if stopping:
             newY = stopping[1]
             StopFalling()
-        else
+        else:
             self.vy += Character.G
 
         self.x = newX
@@ -84,15 +85,18 @@ class Camera(object):
         self._rect.y += y
     
     def follow_sprite(self, sprite):
-        if sprite.x - self._rect.x < self.FOLLOW_BORDER_WIDTH:
+        """
+        assumes that sprite.rect was updated recently, so run only after draw()
+        """
+        if sprite.rect.left - self._rect.x < self.FOLLOW_BORDER_WIDTH:
             self._rect.x -= self.FOLLOW_SPEED
-        if sprite.x - self._rect.x > self._rect.w - self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.right - self._rect.x > self._rect.w - self.FOLLOW_BORDER_WIDTH:
             self._rect.x += self.FOLLOW_SPEED
-        if sprite.y - self._rect.y < self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.top - self._rect.y < self.FOLLOW_BORDER_WIDTH:
             self._rect.y -= self.FOLLOW_SPEED
-        if sprite.y - self._rect.y > self._rect.h - self.FOLLOW_BORDER_WIDTH:
+        if sprite.rect.bottom - self._rect.y > self._rect.h - self.FOLLOW_BORDER_WIDTH:
             self._rect.y += self.FOLLOW_SPEED
-
+    
     def draw(self, sprites, screen):
         group = pygame.sprite.Group()
         for sprite in sprites:
@@ -103,7 +107,6 @@ class Camera(object):
     def xy(self):
         return self._rect.x, self._rect.y
 
-
 class GameOfLife(object):
     def __init__(self, initial):
         self._state = numpy.array(initial)
@@ -111,6 +114,19 @@ class GameOfLife(object):
     def next_state(self):
         self._state = gameoflife.round(self._state)
     
+    def check_bottom_collision(self, (x0, y0), (x1, y1), width):
+        """
+        (x0, y0) are leftmost point of character's feet at beginning
+        of movement, (x1, y1) are leftmost point of character's feet
+        at end of movement with y1 incremented by 1 (so that if
+        character is standing still collision with the cell below will
+        keep being reported). width is width of character feet.
+
+        returns None if no collision below, (x, y) where character
+        should stop if there is collision.
+        """
+        raise NotImplementedError()
+
     def draw(self, camera, screen):
         camera_x, camera_y = camera.xy()
         gol_x0 = camera_x / CELL_LENGTH
@@ -129,7 +145,6 @@ class GameOfLife(object):
                     cell_x = -(camera_x % CELL_LENGTH) + CELL_LENGTH * x
                     rect = pygame.Rect((cell_x, cell_y), (CELL_LENGTH, CELL_LENGTH))
                     screen.fill(BLACK, rect)
-        
         
 GOL_TICK = pygame.USEREVENT + 0
 PLAYER_TICK = pygame.USEREVENT + 1
@@ -157,7 +172,7 @@ def go():
     gol_state = None
 
     sprites = pygame.sprite.Group()
-    character = Character(0, 2)
+    character = Character(gol, 0, 2)
     sprites.add(character)
 
     camera = Camera(pygame.Rect(0, 0, SCREEN_X, SCREEN_Y))
