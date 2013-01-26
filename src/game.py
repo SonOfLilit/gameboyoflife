@@ -69,7 +69,6 @@ class Character(pygame.sprite.Sprite):
         elif direction == "RIGHT":
             self.vx = Character.DSPEED
         elif direction == "SPACE" and self.vy == 0:
-            print "space"
             self.vy = -Character.DSPEED
 
     def StopMovement(self):
@@ -136,18 +135,18 @@ class GameOfLife(object):
         
         # Should be pretty easy to remove this limitation, just add a for loop
         assert y1 - y0 < CELL_LENGTH, "character falling more than a cell in a tick not supported yet"
+        assert abs(x1 - x0) < CELL_LENGTH, "character crossing more than a cell horizontally in a tick not supported"
         
         
-        # character collides with floor only if at the beginning feet
-        # are at least partially on white and at the end feet are at least
-        # partially on black AND collision with top of a cell happens
-        # before collision with side of that cell (assuming linear
-        # motion)
+        # floor is a border between a cell and the cell below it where
+        # the cell above is white and the cell below is black.
         #
-        # So:
-        # 
-        # If at beginning we were wholly in black, no collision
-        if self._at(x0, y0) and self._at(x0 + width, y0):
+        # Character collides with floor only if character's path crosses
+        # floor.
+        #
+        # If there are no floors in rectangle including character's path,
+        # no collision
+        if not ((not self._at(x0, y0) and self._at(x0, y1)) or (not self._at(x0 + width, y0) and self._at(x0 + width, y1))):
             return None
         # If at end we will be wholly in white, no collision
         if not self._at(x1, y1) and not self._at(x1 + width, y1):
@@ -157,12 +156,11 @@ class GameOfLife(object):
         # Can't be division by zero because of if at beginning of function
         x_crossing = x0 + (x1 - x0) * (y_crossing - y0) / (y1 - y0)
         # now, is this collision with floor or do we pass through side?
-        if self._at(x_crossing, y_crossing) or self._at(x_crossing + width, y_crossing):
+        if ((not self._at(x_crossing, y_crossing - 1) and self._at(x_crossing, y_crossing)) or (not self._at(x_crossing + width, y_crossing - 1) and self._at(x_crossing + width, y_crossing))):
             # collision! return where character was stopped!
             return x_crossing, y_crossing
         else:
-            # passed through side, look how we're fully above white at
-            # moment of y crossing
+            # wasn't real floor (only diagonal changed from white to black) or passed through side
             return None
         
     def _at(self, x, y):
