@@ -8,14 +8,14 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
-CELL_LENGTH = 16
+CELL_LENGTH = 30
 CELL_IMAGE = pygame.Surface([CELL_LENGTH, CELL_LENGTH])
 CELL_IMAGE.fill(BLACK)
 
 GOL_TICK = pygame.USEREVENT + 0
 
-SCREEN_X = 640
-SCREEN_Y = 480
+SCREEN_X = 800
+SCREEN_Y = 600
 
 class Character(pygame.sprite.Sprite):
     # Dir: X, Y
@@ -26,11 +26,11 @@ class Character(pygame.sprite.Sprite):
     def __init__(self, gol, x, y):
         pygame.sprite.Sprite.__init__(self)
         
-        self.image = pygame.Surface([CELL_LENGTH, CELL_LENGTH]) 
+        self.image = pygame.Surface([CELL_LENGTH / 2, CELL_LENGTH / 2]) 
         self.image.fill(RED)
        
         self.rect = self.image.get_rect()
-        self.x, self.y = x * CELL_LENGTH, y * CELL_LENGTH
+        self.x, self.y = x * CELL_LENGTH + CELL_LENGTH / 4, y * CELL_LENGTH + CELL_LENGTH / 4
         self.vx = 0
         self.vy = 0
         
@@ -68,7 +68,8 @@ class Character(pygame.sprite.Sprite):
             self.vx = -Character.DSPEED
         elif direction == "RIGHT":
             self.vx = Character.DSPEED
-        elif direction == "SPACE" and self.vy is None:
+        elif direction == "SPACE" and self.vy == 0:
+            print "space"
             self.vy = -Character.DSPEED
 
     def StopMovement(self):
@@ -253,7 +254,7 @@ def go():
         gol.draw(camera, screen)
         camera.draw(sprites, screen)
         
-        #camera.follow_sprite(character)
+        camera.follow_sprite(character)
 
         clock.tick(20)
         pygame.display.flip()
